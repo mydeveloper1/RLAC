@@ -1,0 +1,230 @@
+---
+title: "Notes 1: Introduction to R and Tidy Austen"
+output: html_document
+---
+
+
+# Introduction to R and RMarkdown
+# Thanks to Lauren Tilton for the structure here!
+
+The exercise below with Jane Austen derives from Text Mining with R: A Tidy Approach [links](https://www.tidytextmining.com/)
+
+If you are reading this file, you have probably already installed R and RStudio
+correctly (yay!). This document is called an R markdown notebook. It allows you to
+write both prose and code within the same file. The prose is written in the area
+with a white background, which you should see here. It is possible to use all of
+the standard markdown formatting while writing. These include *italics* and **bold**
+text, as well as [links](https://yourwebsite.com). There are also code blocks, that
+show up in a grey background, such as the one here:
+
+```{r}
+print("Welcome!")
+```
+
+You can create a new code block by clicking on the "Insert" button above, or by coping
+a block from one place to another. In order to execute the code, tap on the green play
+button in the upper right corner of the code block. Doing this above now and you will
+see that R prints out the welcome message below the code block. There is a way of 
+running all of the code in a notebook and creating an HTML or PDF file. We will show this
+at the end of this document.
+
+Want to take notes? Feel free! You can write them directly in this file. 
+It won't change the code. Unlike many programs though, RStudio will not 
+automatically save your changes. So make sure to "save" by clicking the disc logo. 
+
+# Setting up RStudio
+
+Before we do anything else, it is helpful to change some of the default settings in
+RStudio. Open the "Preferences" window (Tools > Options on Windows and RStudio > Preferences
+on a mac). Then make the following changes in the General window:
+
+- Uncheck all three checkboxes that start with "Restore..."
+- Find the prompt "Save workspace to .RData" and set it to "Never"
+- Unselect the "Always save history"
+
+Then, in the Code menu, unselect:
+
+- Insert matching parens/quotes
+
+We find that these choices help to recover from errors and make using R easier for new users.
+
+# R Basics
+
+This workshop is not intended to offer a complete introduction to R. It will be useful, however, to understand some basic methods for using the language and how it works. As perhaps its most straightforward use, R can be used as a simple calculator. Test this by using the code below:
+
+```{r}
+100 + 5
+```
+
+We can also save results as *variables* by using an arrow (<-) and making a variable name. Running the variable on its own returns the result again:
+
+```{r}
+result <- 100 + 5
+result
+```
+ 
+After you run the above block of code, you should see the variable `result` in the upper right hand corner of RStudio, along with its value (105). 
+
+The top right window is showing us which variables (and the values assigned to them) that we have created as well as keeping track of what we have done. This can be very helpful when things get complex!
+
+R can also work with more complex objects. This will be very important for us as we will be working with  collections of numbers in order to do image analysis. To the computer, the image is just a series of numbers, which we will come back to. 
+
+As a result, knowing how numbers are stored and manipulated in R is key. 
+One common type is called a vector, which is a collection of individual values. 
+You can create these by using the `c` function and seperating values by a comma:
+
+```{r}
+result <- c(1, 2, 3, 10, 100)
+result
+```
+
+Notice that the value of `result` has been changed in the window in the upper right hand side of RStudio.
+It is possible to apply mathematical operations on all of the values in a vector at once, like this:
+
+```{r}
+result + 1
+```
+
+R decides that you wanted to add 1 to *each* element of the vector. You can also do mathematical operations between vectors of the same length, like this:
+
+```{r}
+result + result
+```
+
+Above, R lines up each element of result, and adds it to itself. There are also numerous functions available in R. These take one or more inputs and return a result. For example, the `sum` function takes a vector and returns a single number given the sum of the elements in the vector:
+
+```{r}
+sum(result)
+```
+
+Finally, it is also possible to save other types of values other than numbers. For example, we might have captions for our images. So, we can also save strings:
+
+```{r}
+mystring <- "Hello there!"
+```
+
+As with numbers, we can create vectors of strings:
+
+```{r}
+mystring <- c("Hello there!", "Hello again!")
+```
+
+We are not able to do all of the same things with strings that we can do with numbers though. For example, we cannot add 1 to a vector of strings:
+
+```{r, eval=FALSE}
+mystring + 1
+```
+
+However, we can paste together the elements of a vector of strings using the `paste` function:
+
+```{r}
+paste(mystring, collapse=" ")
+```
+
+Hopefully these operations will help to demystify some of the R code you will be seeing.
+
+# Packages
+
+We are going to pause right after loading these libraries. 
+
+While the default version of R provides many helpful functions for working with data, much of the power of R comes from user-contributed code that provides specific implementations of more advanced and specialized operations. We are going to use several of these in the following notes, and it is easiest to install of the needed packages before getting started. A package only needs to be installed once. The following code checks whether you have each of the listed packages and if not, installs it for you. If you have not installed the packages, it could take several minutes for this to finish running.
+
+
+First, we have to install three packages to try working with the Jane Austen corpus 
+
+
+```{r, message=FALSE}
+
+install.packages("janeaustenr")
+install.packages("dplyr")
+install.packages("stringr")
+
+```
+
+Once that code works for you (because of the safe guards, you can re-run the block safely to 
+make sure everything is working), you should be ready to go. Although you only need to install
+a package once, you will need to load each package once every session in which you need it. Although there are updates and sometimes you have to re-open the R session. 
+
+To load (or invoke) a library, we use the `library` function.
+
+
+```{r, message=FALSE}
+
+library(janeaustenr)
+library(dplyr)
+library(stringr)
+```
+
+And now the "tidy" magic begins...
+
+```{r, message=FALSE}
+
+original_books <- austen_books() %>%
+  group_by(book) %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]",
+                                                 ignore_case = TRUE)))) %>%
+  ungroup()
+
+original_books
+```
+
+Now we will separate the words, making them one-token-per-row: 
+
+
+```{r}
+
+install.packages("tidytext")
+library(tidytext)
+tidy_books <- original_books %>%
+  unnest_tokens(word, text)
+
+tidy_books
+
+```
+
+
+What did we do wrong?
+Can you fix it?
+
+Then, we will go on to remove "stop words" (This is similar to VT)
+
+```{r}
+
+data(stop_words)
+
+tidy_books <- tidy_books %>%
+  anti_join(stop_words)
+
+```
+
+Using the indigenous function count we can find the most common words in the text. 
+
+```{r}
+
+tidy_books %>%
+  count(word, sort = TRUE) 
+
+```
+
+
+Let's plot the tidy data frame. Can you guess what we need to do to make ggplot work?
+
+```{r}
+
+library(ggplot2)
+
+tidy_books %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 600) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+
+```
+
+Try to change some of the parameters in lines 212 sq. 
+
+Fin.

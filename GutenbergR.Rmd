@@ -1,0 +1,179 @@
+---
+title: "Working with Project Gutenberg with R"
+output: html_notebook
+---
+
+This notebook is modeled after https://www.tidytextmining.com/tidytext.html#the-gutenbergr-package
+
+
+The texts used in this notebook were written by an American childrens' book writer at the turn of the 20th century.  One critic has called her "Manifest Destiny's Child." 
+
+It is a simple (often stereotyping, racist) literature written in the service of American empire.  They are all included in Project Gutenberg. 
+
+
+
+
+```{r}
+
+install.packages("gutenbergr")
+
+```
+
+```{r}
+
+library(gutenbergr)
+
+```
+
+```{r}
+
+# what do you know about the author of the "Our Little Cousin series?"
+# to what books do these reference numbers refer?
+
+littlecousin <- gutenberg_download(c(43426, 45750, 43636, 43833))
+
+```
+
+```{r}
+
+tidy_littlecousin <- littlecousin %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words)
+
+```
+
+```{r}
+tidy_littlecousin %>%
+  count(word, sort = TRUE)
+```
+
+Now, go back to the previous notebook ('TidyAusten.rmd') and make a plot of the most frequent words in the Little Cousin books (say, more than 50 words)
+
+NB: you will have to change some of the code, install and call new packages!
+
+
+```{r}
+
+
+
+
+```
+
+
+What did you find? What kinds of interesting information are available in this analysis? What would you like to know more about?  Is there a connection between the counted words and the book covers (visible in Project Gutenberg)?
+
+Feel free to take some notes here: 
+
+
+
+Let's now try doing one book at a time, starting with "Our Little Japanese Cousin"
+
+
+```{r}
+
+cousin1 <- gutenberg_download(43833)
+tidy_cousin1 <- cousin1 %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words)
+
+tidy_cousin1 %>%
+  count(word, sort = TRUE)
+
+```
+
+Repeat this code for another book by the same author (https://www.gutenberg.org/ebooks/author/5065), call this cousin2 and let's discuss your results. 
+
+
+```{r}
+
+
+
+```
+
+Repeat with another book and let's call this cousin3.
+
+
+```{r}
+
+
+
+```
+
+Now let's go to the texts themselves and read them online (closely or surface-ly) to see to what extent the results match our impressions given by the previous word counting. 
+
+Feel free to take notes here: 
+
+
+
+
+Next, let's compare the word frequencies of three "Our Little Cousin" books. 
+
+We do this by binding the data frames together. We can use "spread"" and "gather" from tidyr to reshape our dataframe so that it is just what we need for plotting and comparing the three sets of novels.
+
+We will need to install two new packages. 
+
+```{r}
+
+install.packages("tidyr")
+install.packages("scales")
+
+```
+
+
+```{r}
+
+library(tidyr)
+
+frequency <- bind_rows(mutate(tidy_cousin1, author = "Japanese"),
+                       mutate(tidy_cousin2, author = "[nationality2]"), 
+                       mutate(tidy_cousin3, author = "[nationality3]")) %>% 
+  mutate(word = str_extract(word, "[a-z']+")) %>%
+  count(author, word) %>%
+  group_by(author) %>%
+  mutate(proportion = n / sum(n)) %>% 
+  select(-n) %>% 
+  spread(author, proportion) %>% 
+  gather(author, proportion, `[nationality2]`:`[nationality3]`)
+
+```
+
+You should expect no output for now. 
+
+Now let's plot it. 
+
+```{r}
+
+library(scales)
+
+# expect a warning about rows with missing values being removed
+ggplot(frequency, aes(x = proportion, y = `Japanese`, color = abs(`Japanese` - proportion))) +
+  geom_abline(color = "gray40", lty = 2) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
+  geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5) +
+  scale_x_log10(labels = percent_format()) +
+  scale_y_log10(labels = percent_format()) +
+  scale_color_gradient(limits = c(0, 0.001), low = "darkslategray4", high = "gray75") +
+  facet_wrap(~author, ncol = 2) +
+  theme(legend.position="none") +
+  labs(y = "Japanese", x = NULL)
+
+```
+
+
+How can you use the output for a comparison of the books.  Is it a surface / distant comparison? 
+
+Try to change the settings of the last code block to vary the output.  If you need advice on settings for ggplot2, you can consult its documentation here: https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf
+
+All R packages have documentation at the same website and are required to update them regularly. 
+
+
+
+
+About Rmd notebooks: 
+
+NB: Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
