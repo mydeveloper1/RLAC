@@ -9,7 +9,7 @@ output: html_document
 
 This notebook continues the last one when we used the GutenbergR package to analyze texts in Project Gutenberg: https://github.com/djwrisley/RLAC/blob/master/GutenbergR.Rmd  
 
-In this notebook we will work will build build corpora out of texts from Project Gutenberg in roder to try out computational stylistics, also known as "stylometry.". Corpus preparation and file structure for the stylo package is quite specific and this notebook makes that task easier. 
+In this notebook we will work will build a corpus out of texts from Project Gutenberg in order to try out computational stylistics, also known as "stylometry." Corpus preparation and file structure for the stylo package is quite specific and this notebook makes that task easier. 
 
 Using Project Gutenberg for your stylometry experiments has the same limitations as we encountered in the last notebook.  PG has more than 60K texts, most of them are in English and they predate the 1920s.  That being said you can do quite a lot with it. 
 
@@ -48,7 +48,7 @@ library(dplyr)
 
 ```
 
-We need to load the stylo package from a GitHub account (at the time of writing this notebook it was not available in CRAN). If you are running iOS you will need to download https://www.xquartz.org/ and restart your system. You may get a note to update some files.  Make sure you have the console below open so that you can agree to those updates. 
+We need to load the stylo package from the project GitHub account (at the time of writing this notebook it was not available in CRAN, normally install.packages("stylo") and library(stylo) would suffice). If you are running iOS you will need to download https://www.xquartz.org/ and restart your system. You may get a note to update some files.  Make sure you have the console below open so that you can agree to those updates. 
 
 ```{r}
 
