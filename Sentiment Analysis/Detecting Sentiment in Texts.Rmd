@@ -1,0 +1,299 @@
+---
+title: "Detecting Sentiment from English Texts"
+author: "David Joseph Wrisley"
+date: "4/25/2020"
+output: html_document
+---
+
+Sentiment, according to Merriam Webster is "an attitude, thought, or judgment prompted by feeling." Like `emotion`, it is a complex notion with a history, philosophy and ethics.  
+
+`Sentiment analysis`, sometimes called opinion mining, attempts to extract from texts affective or subjective information from data. The kind we will look at here is a somewhat simple one: the automated extraction, classification and interpretation of sentiment from texts using some natural language processing techniques. It is one of the ways we might say that we can "read like a computer." Sentiment can also be derived from image or even biometric data. 
+
+We will look at a basis task which is to compare the words of books to lists (known as lexicons) of words that have been pre-annotated, that is, humans have offered their judgment whether a word is positive or negative. As we will see there are different lexicons that we can use. Dobson has critiqued this oversimplified notion of `emotion` and `affect`. 
+
+This notebook is based on https://www.tidytextmining.com/sentiment.html.  
+
+Let's start with the `tidytextd` package (install it if you don't have it).
+
+```{r}
+library(tidytext)
+```
+
+One method of identifying sentiment is to compare texts against list of words that contain ranked words. Sentiment lexicons supported by the tidytext passage include `bing`, `afinn`, `nrc.`  
+
+The `bing` lexicon rates every word as positive or negative. The `afinn` lexicon rates words on a scale of -5 (most negative) to 5 (most positive).  Note that all sentiments are somehow human created data, usually brought together via crowdsourcing. The `nrc` lexicon puts every word into a category (joy, trust, fear, anger, etc).
+
+Run this command to inspect the lexicon.    
+
+
+```{r}
+get_sentiments("afinn")
+
+```
+
+You will notice that when you look at the `afinn` lexicon that verbs are listed generally in four forms (base form, the 3rd person singular with 's', a past tense form and the gerundive. This is obviously a model that works with English.)
+
+Try another one to assess the difference.
+
+
+```{r}
+get_sentiments("nrc")
+
+```
+
+To do the rest of the analysis we need to invoke these packages (they should already be installed in your RStudio).
+
+```{r}
+library(janeaustenr)
+library(dplyr)
+library(stringr)
+
+```
+
+You can probably guess what this chunk of code does below, as it resembles code we have used before.  It takes all of Austen's books and breaks them down into tidy format (the form is called a `tibble`), a table with the book name, line number, chapter number and each word. 
+
+
+```{r}
+tidy_books <- austen_books() %>%
+  group_by(book) %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]", 
+                                                 ignore_case = TRUE)))) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+
+```
+
+Check `tidy_books` to see what you have produced. Remember this tidy data format is called a tibble.
+
+```{r}
+
+tidy_books %>%
+  filter(book == "Northanger Abbey")
+
+
+```
+
+Let's now take the `nrc` sentiment lexicon and Austen's book `Emma` and do a table join.  Basically this means we combine the two tables looking for the overlap.  We do this with the function filter to look only at Austen's book `Emma`. 
+
+
+```{r}
+
+nrc_joy <- get_sentiments("nrc") %>% 
+  filter(sentiment == "joy")
+
+tidy_books %>%
+  filter(book == "Emma") %>%
+  inner_join(nrc_joy) %>%
+  count(word, sort = TRUE)
+
+```
+
+What do you think of the words in Emma that are marked as "joyful" by `nrc`? Do you disagree? 
+
+Let's try the same concept but another way using `afinn` and numerical values. Change the value to see what you get. (If you try -4 you only get one word "fraud" (!).)
+
+
+```{r}
+afinn_verynegative <- get_sentiments("afinn") %>% 
+  filter(value == -3 )
+
+tidy_books %>%
+  filter(book == "Emma") %>%
+  inner_join(afinn_verynegative) %>%
+  count(word, sort = TRUE)
+
+```
+
+In case you forgot, Austen's six main novels are `Pride & Prejudice`, `Sense & Sensibility`, `Emma`, `Persuasion`, `Mansfield Park` and `Northanger Abbey`. If you want, filter for any of the others and run the code above again. 
+
+
+Now we can look at the whole corpus again, dividing it up into 80 line sections, looking at the general sentiment of those sections.  
+
+```{r}
+library(tidyr)
+
+jane_austen_sentiment <- tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(book, index = linenumber %/% 80, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+```
+
+And plotting this out...
+
+```{r}
+library(ggplot2)
+
+ggplot(jane_austen_sentiment, aes(index, sentiment, fill = book)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~book, ncol = 2, scales = "free_x") +
+  labs (x = "Segment of Austen's novel", y = "Sentiment score")
+```
+
+What do these visualizations show us? What is the meaning of the `x` and `y` axes? the What are Austen's most negative books? What parts of the book are the most negative? Can you bring any knowledge of the novels to explain this? 
+
+Try other segmentation of the lines other than 80 line parts. What is the difference? 
+
+If you are not familiar with Austen chapter by chapter, can you try a plot summary to corroborate these findings?
+
+Check out plot summaries of Austen's novels from the Jane Austen Society of the UK [here](http://www.janeaustensoci.freeuk.com/pages/novels.htm).
+
+####
+
+Now let's repeat the major steps here for texts from the `harrypotter` corpus. 
+
+Let's start our analysis with `philosophers_stone`.  Change the variable to see other texts. The other names of the books can be found [here](https://github.com/bradleyboehmke/harrypotter). 
+
+
+```{r}
+
+library(harrypotter)
+library(dplyr)
+library(tidytext)
+library(stringr)
+library(ggplot2)
+
+hp_text <- philosophers_stone
+
+hp_df <- tibble(line = 1:length(hp_text), text = hp_text)
+
+tidy_hp <- hp_df %>%
+  unnest_tokens(word, text)
+
+
+```
+
+Take a look at tidy_hp.  Line = chapter. 
+
+
+```{r}
+tidy_hp
+```
+
+```{r}
+
+nrc_sent <- get_sentiments("nrc") %>%
+  filter(sentiment == "joy")
+
+tidy_hp %>%
+  inner_join(nrc_sent) %>%
+  count(word, sort = TRUE)
+```
+
+```{r}
+library(tidyr)
+
+hp_sentiment <- tidy_hp %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, index = line, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+```
+
+Let's see by chapter (here called index) what the positive / negative plot looks like.  We will use ggplot, and in particular geom_jitter which is a kind of one-dimensional scatter plot. 
+
+
+```{r}
+ggplot(hp_sentiment, aes(index, sentiment, colour = sentiment)) +
+  geom_jitter(position=position_jitter(0.3)) 
+
+```
+
+
+How do you interpret this plot? 
+
+Let's try the same book with a different sentiment lexicon, the `nrc`. 
+
+
+```{r}
+
+hp_sentiment2 <- tidy_hp %>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(word, index = line, sentiment) # %>%
+
+ggplot(hp_sentiment2, aes(index, sentiment, colour = sentiment)) +
+  geom_jitter(position=position_jitter(0.25)) 
+
+```
+
+Can you imagine reading Harry Potter or anything else this way? By chapter and by `nrc` sentiment? How would you make that happen?
+
+Now let's automate this process for Project Gutenberg again using the `bing` lexicon.  Remember its sentiments are classified with a score that runs from -5 to 5, negative to positive. 
+
+The case here is Robert Louis Stevenson's `The Strange Case of Dr Jekyll and Mr Hyde`.  You can review the plot summary [here](https://www.bbc.co.uk/bitesize/guides/z88wjxs/revision/1).
+
+First of all, we import the book from using the Gutenberg package and we need to make it into a tibble. 
+
+```{r}
+library(gutenbergr)
+
+pg_text <- gutenberg_download(c(43)) 
+pg_text <- select(pg_text, text)
+pg_text <- mutate(pg_text, linenumber = as.integer(rownames(pg_text)), book="book name")
+
+tidy_pg <- pg_text %>%
+  unnest_tokens(word, text)
+
+```
+
+Inspect the tibble and then let's do the table join to append the bing sentiment lexicon to chunks of 200 lines at a time. 
+
+```{r}
+pg_sentiment <- tidy_pg %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, index = linenumber %/% 200, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+```
+
+And then we can use a point based plot to visualize it. 
+
+```{r}
+library(ggplot2)
+
+ggplot(pg_sentiment, aes(index, sentiment, colour = sentiment)) +
+  geom_point(position=position_jitter(0.3)) 
+
+```
+
+There are of course plenty of slightly negative and positive terms forming the almost rectangular cluster.  What about the rest? Are there interesting trends? If you changed the segmentation from 200 lines to another number, what would happen? 
+
+```{r}
+pg_sentiment2 <- tidy_pg %>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(word, index = linenumber %/% 200, sentiment) # %>%
+
+ggplot(pg_sentiment2, aes(index, sentiment, colour = sentiment)) +
+  geom_jitter(position=position_jitter(0.25)) 
+
+```
+
+Search in Project Gutenberg for texts that might correspond to genres for which this kind of sentiment analysis might be valuable (horror, sci-fi, melodrama, autobiography, memoir). Choose a book that you know somewhat.  What does sentiment analysis help us understand about it? 
+
+As a last look, let's take a look at the wildly popular turn of the century autobiography by Booker T Washington, Up From Slavery. You can read about it [here](https://en.wikipedia.org/wiki/Up_from_Slavery). #2376 at PG. 
+
+
+```{r}
+
+pg_text <- gutenberg_download(c(2376)) 
+pg_text <- select(pg_text, text)
+pg_text <- mutate(pg_text, linenumber = as.integer(rownames(pg_text)), book="book name")
+
+tidy_pg <- pg_text %>%
+  unnest_tokens(word, text)
+
+pg_sentiment2 <- tidy_pg %>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(word, index = linenumber %/% 200, sentiment) # %>%
+
+ggplot(pg_sentiment2, aes(index, sentiment, colour = sentiment)) +
+  geom_jitter(position=position_jitter(0.25))  
+
+
+```
+
+
+FIN
