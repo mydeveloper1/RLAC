@@ -13,7 +13,7 @@ We will look at a basis task which is to compare the words of books to lists (kn
 
 This notebook is based on https://www.tidytextmining.com/sentiment.html.  
 
-Let's start with the `tidytextd` package (install it if you don't have it).
+Let's start with the `tidytext` package (install it if you don't have it).
 
 ```{r}
 library(tidytext)
