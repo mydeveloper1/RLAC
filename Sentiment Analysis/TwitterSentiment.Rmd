@@ -1,0 +1,282 @@
+---
+title: "Twitter Sentiment"
+author: "David Joseph Wrisley"
+date: "4/30/2020"
+output: html_notebook
+---
+
+This notebook will walk you through how you can use live Twitter data to compare two hashtags from the point of sentiment. 
+
+This notebook is based on Sipra's article: https://towardsdatascience.com/twitter-sentiment-analysis-and-visualization-using-r-22e1f70f6967 and parts of https://www.tidytextmining.com/sentiment.html. 
+
+
+We first need to install necessary package (you may already have some of them--check the environment tab and the drop down menu `global environment` to see what you have installed).
+
+```{r}
+install.packages("rtweet")
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("tidytext")
+
+```
+
+And then we need to call up these libraries: 
+
+```{r}
+library(rtweet)
+library(dplyr)
+library(tidyr)
+library(tidytext)
+library(ggplot2)
+
+```
+
+This part of the notebook was covered in the short video entitled getting a Twitter API key. You get these at developer.twitter.com in the section called Apps.
+
+Without creating a twitter app this entire notebook will not work. Do not share your values with others!
+
+
+```{r}
+app_name = 'App for R'
+consumer_key = 'XXX'
+consumer_secret = 'XXX'
+access_token = 'XXX'
+access_secret = 'XXX'
+
+```
+
+The search_tweets goes to Twitter and calls up n tweets at the specified hashtag and excludes retweets.
+
+When choosing a hashtag to study, be sure that you do not choose a globalized one such as #stayathome, since this will give you n tweets in many different language. It is really an art, finding the right balance of hashtags. 
+
+
+
+```{r}
+hashtag1 <- search_tweets(
+  "#TrumpDisinfectant", n = 1000, include_rts = FALSE
+)
+hashtag2 <- search_tweets(
+  "#OPENAMERICANOW", n = 1000, include_rts = FALSE
+)
+```
+
+Let's take only the columns (`screen name` and `text` of the tweet) we want. 
+
+```{r}
+
+tweets.Hashtag1 = hashtag1 %>% select(screen_name,text)
+tweets.Hashtag1
+tweets.Hashtag2 = hashtag2 %>% select(screen_name,text)
+tweets.Hashtag2
+
+```
+
+Let's remove the http elements for hashtag1 and then look at the top ones.
+
+```{r}
+
+head(tweets.Hashtag1$text)
+tweets.Hashtag1$stripped_text1 <- gsub("http\\S+","",tweets.Hashtag1$text)
+
+tweets.Hashtag1_stem <- tweets.Hashtag1 %>%
+  select(stripped_text1) %>%
+  unnest_tokens(word, stripped_text1)
+
+head(tweets.Hashtag1_stem)
+cleaned_tweets.Hashtag1 <- tweets.Hashtag1_stem %>%
+    anti_join(stop_words)
+head(cleaned_tweets.Hashtag1)
+
+head(tweets.Hashtag1$text)
+
+```
+
+Let's repeat that step and remove the http elements for hashtag2.
+
+```{r}
+
+head(tweets.Hashtag2$text)
+tweets.Hashtag2$stripped_text2 <- gsub("http\\S+","",tweets.Hashtag2$text)
+
+tweets.Hashtag2_stem <- tweets.Hashtag2 %>%
+  select(stripped_text2) %>%
+  unnest_tokens(word, stripped_text2)
+
+head(tweets.Hashtag2_stem)
+cleaned_tweets.Hashtag2 <- tweets.Hashtag2_stem %>%
+    anti_join(stop_words)
+head(cleaned_tweets.Hashtag2)
+
+head(tweets.Hashtag2$text)
+
+```
+
+The next code chunk defines a list of stopwords that you would like to remove from the list. It is different from regular stop words lists we used before because we are not looking at function words. You can put as many of the stopwords as you like (realistically, you will run this chunk after the following ones when you realize what words dominate). 
+
+```{r}
+
+custom_stopwords <-c("trumpdisinfectant", "realdonaldtrump", "trump")
+cleaned_tweets.Hashtag1 <- dplyr::filter(cleaned_tweets.Hashtag1, !word %in% custom_stopwords)
+
+```
+
+```{r}
+cleaned_tweets.Hashtag1 %>%
+  count(word, sort = TRUE) %>%
+  top_n(25) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x= word, y = n)) +
+  geom_col() +
+  xlab(NULL) + 
+  coord_flip() + 
+  theme_classic() + 
+  labs(x = "Count",
+       y = "Unique words",
+       title =  "Unique words in the #TrumpDisinfectant hashtag (stopwords removed")
+```
+
+Filter hashtag2 as you like 
+
+```{r}
+custom_stopwords <-c("openamericanow", "openamerica", "opencalifornianow")
+cleaned_tweets.Hashtag2 <- dplyr::filter(cleaned_tweets.Hashtag2, !word %in% custom_stopwords)
+```
+
+
+```{r}
+cleaned_tweets.Hashtag2 %>%
+  count(word, sort = TRUE) %>%
+  top_n(25) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x= word, y = n)) +
+  geom_col() +
+  xlab(NULL) + 
+  coord_flip() + 
+  theme_classic() + 
+  labs(x = "Count",
+       y = "Unique words",
+       title =  "Unique words in the #OPENAMERICANOW hashtag (stopwords removed)")
+
+```
+
+Now, we are going to repeat what we did in the previous notebook with the `bing` lexicon. It is called a table join. 
+
+
+```{r}
+bing_hashtag1 = cleaned_tweets.Hashtag1 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+bing_hashtag1
+```
+
+This chunk below will take the top `n` most influential words that contribute to the sentiment score.  Change out `n` if you want to have a larger or smaller number.  
+
+
+```{r}
+bing_hashtag1 %>%
+  group_by(sentiment) %>%
+  top_n(20) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") + 
+  labs(title = "tweets containing #TrumpDisinfectant",
+       x = "Words",
+       y = "Contribution to sentiment") +
+  coord_flip() + theme_bw()
+
+```
+
+```{r}
+bing_hashtag2 = cleaned_tweets.Hashtag2 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+bing_hashtag2 %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") + 
+  labs(title = "tweets containing #OPENAMERICANOW",
+       x = "Words",
+       y = "Contribution to sentiment") +
+  coord_flip() + theme_bw()
+
+```
+
+Below is a hashtag of an event that took place in late April in celebration of digital humanities. I scrape the hashtag and then look at the most influential words from the point of the `bing` lexicon. Try it for your favorite online event with a live hashtag. 
+
+
+```{r}
+hashtag3 <- search_tweets(
+  "#dayofdh2020", n = 1000, include_rts = FALSE
+)
+
+tweets.Hashtag3 = hashtag3 %>% select(screen_name,text)
+tweets.Hashtag3
+
+head(tweets.Hashtag3$text)
+tweets.Hashtag3$stripped_text3 <- gsub("http\\S+","",tweets.Hashtag3$text)
+
+tweets.Hashtag3_stem <- tweets.Hashtag3 %>%
+  select(stripped_text3) %>%
+  unnest_tokens(word, stripped_text3)
+
+head(tweets.Hashtag3_stem)
+cleaned_tweets.Hashtag3 <- tweets.Hashtag3_stem %>%
+    anti_join(stop_words)
+head(cleaned_tweets.Hashtag3)
+
+head(tweets.Hashtag3$text)
+
+custom_stopwords <-c("dayofdh2020", "digital", "dh")
+cleaned_tweets.Hashtag3[[1]][!cleaned_tweets.Hashtag3[[1]] %in% custom_stopwords]
+
+
+cleaned_tweets.Hashtag3 %>%
+  count(word, sort = TRUE) %>%
+  top_n(25) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x= word, y = n)) +
+  geom_col() +
+  xlab(NULL) + 
+  coord_flip() + 
+  theme_classic() + 
+  labs(x = "Count",
+       y = "Unique words",
+       title =  "Unique words found in the #dayofdh2020 hashtag")
+
+
+bing_hashtag3 = cleaned_tweets.Hashtag3 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+bing_hashtag3
+
+
+bing_hashtag3 %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") + 
+  labs(title = "tweets containing #dayofdh2020",
+       x = "Words",
+       y = "Contribution to sentiment") +
+  coord_flip() + theme_bw()
+
+
+```
+
+
+FIN

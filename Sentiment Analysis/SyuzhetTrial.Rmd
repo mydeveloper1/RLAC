@@ -1,0 +1,117 @@
+---
+title: "syuzhet trial"
+author: "David Joseph Wrisley"
+date: "4/30/2020"
+output: html_document
+---
+
+
+```{r}
+install.packages("syuzhet")
+```
+
+```{r}
+library(syuzhet)
+```
+
+
+```{r}
+get_sentiment("The picture quality of this camera is not great, but the battery life is long")
+```
+
+we can also try get_nrc_sentiment or get_stanford_sentiment
+
+```{r}
+get_sentiment("The picture quality of this camera is great, and the battery life is long")
+```
+
+```{r}
+get_sentiment("I absolutely love the biryani at this restaurant")
+```
+
+```{r}
+get_sentiment("This guy is someone you love to hate")
+```
+
+```{r}
+get_sentiment("Don't you just love the karak from Abu Ahmad?")
+```
+
+```{r}
+get_sentiment("Weren't Trump's tweets about injecting the bleach amazing?")
+```
+
+```{r}
+get_sentiment("I am of two minds about a pandemic. I love working from home, but hate doing everything in 80 square meters")
+```
+
+How about these from Our Little Swedish Cousin. 
+
+```{r}
+get_sentiment("For more than five thousand years, the ancestors of our little Swedish cousin have dwelt in the Scandinavian peninsula.")
+```
+
+```{r}
+get_sentiment("No wonder she loves the stories of the Vikings, the old legends, customs, and fête-days.")
+```
+
+```{r}
+get_sentiment("They are her priceless heritage from the days of long ago.")
+```
+
+How about the opening to Charles Dickens' Tale of Two Cities? 
+
+```{r}
+get_sentiment("It was the best of times,
+it was the worst of times,
+it was the age of wisdom,
+it was the age of foolishness,
+it was the epoch of belief")
+```
+
+```{r}
+get_sentiment("It was the best of times,
+it was the worst of times,
+it was the age of wisdom,
+it was the age of foolishness,
+it was the epoch of belief,
+it was the epoch of incredulity,
+it was the season of Light,
+it was the season of Darkness,
+it was the spring of hope,
+it was the winter of despair,
+we had everything before us,
+we had nothing before us,
+we were all going direct to Heaven,
+we were all going direct the other way--")
+```
+
+```{r}
+get_sentiment("It was the best of times,
+it was the worst of times,
+it was the age of wisdom,
+it was the age of foolishness,
+it was the epoch of belief,
+it was the epoch of incredulity,
+it was the season of Light,
+it was the season of Darkness,
+it was the spring of hope,
+it was the winter of despair,
+we had everything before us,
+we had nothing before us,
+we were all going direct to Heaven,
+we were all going direct the other way--
+in short, the period was so far like the present period, that some of
+its noisiest authorities insisted on its being received, for good or for
+evil, in the superlative degree of comparison only.")
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+```
+
