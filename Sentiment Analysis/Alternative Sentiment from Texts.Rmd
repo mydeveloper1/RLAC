@@ -1,0 +1,50 @@
+---
+title: "Alternative Notebook for Sentiment from Texts"
+author: "David Joseph Wrisley"
+date: "5/12/2020"
+output: html_document
+---
+
+If you want to use texts that don't come from Project Gutenberg or want to split one text from PG into several separate texts, try this code from earlier in the notebook for Harry Potter (lines 157-)
+
+Load the necessary libraries
+
+```{r}
+library(tidytext)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+```
+
+Load the files from a txt file and clean them up (This is the same as book 10338 in PG)
+
+```{r}
+path <- "/Users/djw12/Downloads/Aaronsohn_WiththeTurksinPalestine1916.txt"
+text1  <- data.frame(read.delim(path, sep = "\t", header=FALSE, stringsAsFactors = FALSE, quote ="", fill = FALSE))
+
+```
+
+Add a linenumber column. 
+
+```{r}
+text1 <- mutate(text1, linenumber = as.integer(rownames(text1)))
+```
+
+Split them into a tibble by word using the text in column V1, join with the sentiment lexicon and plot (just as in the other notebook)
+
+
+```{r}
+tidytext1 <- text1 %>%
+  unnest_tokens(word, V1)
+
+text1_sentiment <- tidytext1 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, index = linenumber %/% 50, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+ggplot(text1_sentiment, aes(index, sentiment, colour = sentiment)) +
+  geom_point(position=position_jitter(0.3)) 
+```
+
